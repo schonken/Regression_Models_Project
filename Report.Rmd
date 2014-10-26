@@ -1,17 +1,14 @@
 ---
-title: "Transmission Type fuel effieciency Analysis"
-author: "Francois Schonken"
-date: "26/10/2014"
+title: "Transmission Type Fuel Effieciency Analysis"
 output: pdf_document
+date: '2014-10-26'
 ---
 
 ### Executive Summary
-Using the Motor Trends data this report endeavours to find out whether automatic or manual transmission is better for MPG? This report will further more attempt to quantify the MPG difference between automatic and manual transmissions. 
-
-In an effort to keep the report consise most R code is not show, please feel free to visit this [GitHub Repo](https://github.com/schonken/Regression_Models_Project) for the complete R Markdown code.
-
+Using the Motor Trends data this report endeavours to find out whether automatic or manual transmission is better for MPG. This report will further more attempt to quantify the MPG difference between automatic and manual transmissions. In an effort to keep the report concise most of the R code is not shown, please feel free to visit this [GitHub Repository](https://github.com/schonken/Regression_Models_Project) for the complete R Markdown code.
+ 
 ### Data Dictionary
-The Motor Trends data consists of 32 observations. For a full description of the data definition please refer to the [Motor Trends Data Documentation](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/mtcars.html).
+The Motor Trends data consists of 32 observations spanning 11 variables. For a full description of the data definition please refer to the [Motor Trends Data Documentation](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/mtcars.html).
 
 
 Field | Definition | Field | Definition
@@ -23,14 +20,14 @@ qsec | 1/4 mile time in seconds | vs | V/S (0 = V-engine, 1 = straight engine)
 am | Transmission (0 = automatic, 1 = manual) | gear | Number of forward gears
 carb | Number of carburetors
 
-### Exploring the Motor Trend data
-Let's start by getting a feel for the dataset by running ```summuary()``` on a few of the more interesting fields followed by a violin plot to get an idea of the role transmission plays in MPG. 
-```{r Init, echo=FALSE, message=FALSE, fig.height=3.5}
+### Exploring the Data
+We start with a violin plot of ```MPG vs Transmission``` to explore the relatioship between transmission type and MPG. Next we run ```summary()``` on a few of the more interesting fields  in the data to get a feel of what the data is telling us. 
+
+```{r Init, echo=FALSE, message=FALSE, fig.height=3.25}
 library(car)
 
 
 cars <- mtcars
-summary(data.frame(cars$mpg, cars$cyl, cars$disp, cars$hp, cars$drat, cars$wt, cars$qsec, cars$carb))
 
 require(ggplot2)
 ggplot(data=cars, aes(x=factor(am), y=mpg, fill=factor(am))) +
@@ -39,12 +36,14 @@ ggplot(data=cars, aes(x=factor(am), y=mpg, fill=factor(am))) +
   xlab('Transmission (0 = automatic, 1 = manual)') + 
   ggtitle('MPG vs Transmission')
 
+summary(data.frame(cars$mpg, cars$cyl, cars$disp, cars$hp, cars$drat, cars$wt, cars$qsec, cars$carb))
+
 mpg.mean <- c(mean(cars[cars$am==0, 'mpg']), mean(cars[cars$am==1, 'mpg']))
 ```
 
-We find that the mean MPG for our Automatic transmisions is `r mpg.mean[1]` and `r mpg.mean[2]` for our Manual transmissions giving us a `r mpg.mean[2] - mpg.mean[1]` mean MPG difference with the Automatic transmission being less effiecient. This extremely simple comparison is just the beginning of our journey.
+We find that the mean MPG for our Automatic transmissions is `r mpg.mean[1]` and for Manual transmissions is `r mpg.mean[2]`. This is a mean MPG difference of `r mpg.mean[2] - mpg.mean[1]`  with the Automatic transmission being less efficient. This extremely simple comparison is just the beginning of our journey.
 
-### Regression Modeling
+### Regression Modelling
 We iteratively run linear regressions starting with ```summary(lm(mpg ~ cyl + disp + hp + drat + wt + qsec + vs + am + gear + carb, data = cars))$coef```, in each subsequent run we remove the entry (field) with the largest ```Pr(>|t|)``` score until we have only one left, namely ```wt```. Next we use the ```anova()``` function to find the cut-off point in terms regression variables. We find that including the ```gear``` is not beneficial to our regression model and when it is not specified the Transmission type ```am``` scrapes in just under 5%.  
 
 ```{r Anova, echo=FALSE}
@@ -75,7 +74,7 @@ qsec | `r fitAtoC[2,1]` | `r fitAtoD[2,1]`
 am | `r fitAtoC[3,1]` | `r fitAtoD[3,1]`
 gear | | `r fitAtoD[4,1]`
 
-The fields ```wt```, ```qsec``` and ```am``` feel like the right set of variables to be looking at but a linear coeficient against ```qsec``` seems odd. One would expect diminishing returns for the fuel consumed as the ```qsec``` gets smaller (i.e. increased accelaration). In an effort to model these diminishing returns I introduce a new variable named ```qsec.2.I``` which represents the inverse of the square of ```qsec``` ($1/qsec^2$). The following two tables detail the coeficients of the respective linear regression models. We see that using the variable ```qsec.2.I``` as opposed to ```qsec``` yields a tighter fit to our data as evidenced by every single ```Pr(>|t|)``` being almost halved.
+The fields ```wt```, ```qsec``` and ```am``` feel like the right set of variables to be looking at but a linear coefficient against ```qsec``` seems odd. One would expect diminishing returns for the fuel consumed as the ```qsec``` gets smaller (i.e. increased acceleration). In an effort to model these diminishing returns I introduce a new variable named ```qsec.2.I``` which represents the inverse of the square of ```qsec``` ($1/qsec^2$). The following two tables detail the coefficients of the respective linear regression models. We see that using the variable ```qsec.2.I``` as opposed to ```qsec``` yields a tighter fit to our data as evidenced by every single ```Pr(>|t|)``` being almost halved.
 
 ```{r lm, echo=FALSE}
 cars <- cbind(cars, qsec.2.I = 1/(cars$qsec*cars$qsec))
@@ -90,10 +89,11 @@ lm.qsec <- summary(lm(mpg ~ wt + qsec + am, data = cars))
 lm.qsec.2.I <- summary(lm(mpg ~ wt + qsec.2.I + am, data = cars))
 ```
 
-Using the ```qsec``` based regression we arive at a model that reads for each ```wt``` (1000 lb) increase MPG decreases by `r lm.qsec$coef[2,1]`. For each additional second in ```qsec``` (1/4 mile time in seconds) MPG increases by `r lm.qsec$coef[3,1]` and Manual transmissions yield a `r lm.qsec$coef[4,1]` MPG benefit over Automatic transmissions. 
+### Interpreting the Coefficients
+Using the ```qsec``` based regression we arrive at following model. For each additional ```wt``` (1000 lb) our MPG decreases by `r -lm.qsec$coef[2,1]`. For each additional second needed to complete ```qsec``` (1/4 mile time in seconds) our MPG increases by `r lm.qsec$coef[3,1]`. Lastly, Manual transmissions yield a `r lm.qsec$coef[4,1]` MPG benefit (increase) over Automatic transmissions. 
 
 ### Confidence
-The $R^2$ for the ```qsec``` and ```qsec.2.I``` regression models are `r lm.qsec$r.sq` and `r lm.qsec.2.I$r.sq` respectively. The $R^2$ for the ```qsec.2.I``` based regression model is marinally stronger (by `r lm.qsec.2.I$r.sq - lm.qsec$r.sq`) and with this model explaining `r lm.qsec.2.I$r.sq` of the variability this is a highly predictive model. We opt to use the ```qsec.2.I``` based regression model going forward.
+The $R^2$ for the ```qsec``` and ```qsec.2.I``` regression models are `r lm.qsec$r.sq` and `r lm.qsec.2.I$r.sq` respectively. The $R^2$ for the ```qsec.2.I``` based regression model is marginally stronger (by `r lm.qsec.2.I$r.sq - lm.qsec$r.sq`) and with this model explaining `r lm.qsec.2.I$r.sq` of the variability it is a highly predictive model. We opt to use the ```qsec.2.I``` based regression model going forward.
 
 ### Residuals
 ```{r residplot, fig.height=3.5, echo=FALSE}
@@ -103,8 +103,8 @@ ggplot(cars, aes(x=predict(fit), y=resid(fit))) +
   ylab('Residuals') + xlab('Predicted') + ggtitle('Residual vs Predicted')
 ```
 
-The Residuals vs. Predicted look good for this model and I believe we can in good concience use it.
+The Residuals vs. Predicted look good for this model and I believe we can in good conscience use it.
 
 ### Conclusion
-Using our ```qsec.2.I``` based regression model we find that Manual transmissions yeild better MPG in the amount of `r lm.qsec.2.I$coef[4,1]` MPG.
+Using our ```qsec.2.I``` based regression model we find that Manual transmissions yield better MPG in the amount of `r lm.qsec.2.I$coef[4,1]` MPG.
 
