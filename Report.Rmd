@@ -45,7 +45,7 @@ mpg.mean <- c(mean(cars[cars$am==0, 'mpg']), mean(cars[cars$am==1, 'mpg']))
 We find that the mean MPG for our Automatic transmisions is `r mpg.mean[1]` and `r mpg.mean[2]` for our Manual transmissions giving us a `r mpg.mean[2] - mpg.mean[1]` mean MPG difference with the Automatic transmission being less effiecient. This extremely simple comparison is just the beginning of our journey.
 
 ### Regression Modeling
-Next we iteratively run linear regressions starting with ```summary(lm(mpg ~ cyl + disp + hp + drat + wt + qsec + vs + am + gear + carb, data = cars))$coef```, in each subsequent run we remove the entry (field) with the largest ```Pr(>|t|)``` score until we only have one left, namely ```wt```. Next we use the ```anova()``` function to find the cut-off point in terms regression variables. We find that including the ```gear``` is not beneficial to our regression model and when it is not specified the Transmission type ```am``` scrapes in just under 5%.  
+We iteratively run linear regressions starting with ```summary(lm(mpg ~ cyl + disp + hp + drat + wt + qsec + vs + am + gear + carb, data = cars))$coef```, in each subsequent run we remove the entry (field) with the largest ```Pr(>|t|)``` score until we have only one left, namely ```wt```. Next we use the ```anova()``` function to find the cut-off point in terms regression variables. We find that including the ```gear``` is not beneficial to our regression model and when it is not specified the Transmission type ```am``` scrapes in just under 5%.  
 
 ```{r Anova, echo=FALSE}
 # The following block of commented code was used to find the most important fields for our regression
@@ -75,7 +75,7 @@ qsec | `r fitAtoC[2,1]` | `r fitAtoD[2,1]`
 am | `r fitAtoC[3,1]` | `r fitAtoD[3,1]`
 gear | | `r fitAtoD[4,1]`
 
-The fields ```wt```, ```qsec``` and ```am``` feel like the right set of variables to be looking at but a linear coeficient against ```qsec``` seems odd, one would expect diminishing returns for fuel consumed as the ```qsec``` get smaller. To this end, I introduce the variable ```qsec.2.I``` which reads ```1/(qsec * qsec)```. The following two tables detail the coeficients of the respective linear regression models. We see that using the variable ```qsec.2.I``` as opposed to ```qsec``` yields a tighter fit to our data as evidenced by every single ```Pr(>|t|)``` being almost halved.
+The fields ```wt```, ```qsec``` and ```am``` feel like the right set of variables to be looking at but a linear coeficient against ```qsec``` seems odd. One would expect diminishing returns for the fuel consumed as the ```qsec``` gets smaller (i.e. increased accelaration). In an effort to model these diminishing returns I introduce a new variable named ```qsec.2.I``` which represents the inverse of the square of ```qsec``` ($1/qsec^2$). The following two tables detail the coeficients of the respective linear regression models. We see that using the variable ```qsec.2.I``` as opposed to ```qsec``` yields a tighter fit to our data as evidenced by every single ```Pr(>|t|)``` being almost halved.
 
 ```{r lm, echo=FALSE}
 cars <- cbind(cars, qsec.2.I = 1/(cars$qsec*cars$qsec))
